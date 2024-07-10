@@ -69,6 +69,9 @@ const Login = () => {
 
     // console.log("Clicked");
     // if (user === "Dealer") {
+    // if (user === "Dealer") {
+    // if (user === "Dealer") {
+    // if (user === "Dealer") {
     //   navigate("/dealer/homePage");
     // } else {
     //   navigate("/admin/homePage");

@@ -7,13 +7,32 @@ const PlanReport = () => {
   const [bill, setBill] = useState(0); // for toggling view of the Employee
   const [selectedPlan, setSelectedPlan] = useState("");
   const [error, setError] = useState("");
+  const [plans, setPlans] = useState([]); // State for storing available plans
   const [PlanDetails, setPlanDetails] = useState([]);
   const [cugBillDetails, setCugBillDetails] = useState({});
   const [bills, setBills] = useState([]);
   const [selectedBill, setSelectedBill] = useState("");
   const [billCUGNumbers, setBillCUGNumbers] = useState(new Set());
+  const [searchCUG, setSearchCUG] = useState(""); // for custom search
+
   // Firebase database instance setup (replace with your Firebase setup)
   const db = getDatabase(Fapp);
+  // Fetching available plans from the database
+  useEffect(() => {
+    const fetchPlans = () => {
+      const planRef = ref(db, "Plan/");
+      onValue(planRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          const planList = Object.keys(data);
+          setPlans(planList);
+        } else {
+          setPlans([]);
+        }
+      });
+    };
+    fetchPlans();
+  }, [db]);
   // ---------Feching Bills------
   useEffect(() => {
     const fetchBills = () => {
@@ -30,47 +49,10 @@ const PlanReport = () => {
     };
     fetchBills();
   }, [db]);
-  // Handling plan selection and fetching employees
-  // const handleSearch = async (event) => {
-  //   event.preventDefault();
-  //   if (selectedPlan === "" || selectedBill === "") {
-  //     alert("Please Select a Plan and a Bill");
-  //     return;
-  //   }
-
-  //   const planRef = ref(db, "Employees3/");
-  //   const fetchEmployees = new Promise((resolve, reject) => {
-  //     onValue(planRef, (snapshot) => {
-  //       const data = snapshot.val();
-  //       if (data) {
-  //         const filteredDetails = Object.values(data).filter((item) => {
-  //           const isMatchingplan = item.Employee_Plan === selectedPlan;
-  //           const isActive = item.status === "Active";
-  //           return isMatchingplan && isActive;
-  //         });
-  //         resolve(filteredDetails);
-  //       } else {
-  //         reject("No Data found");
-  //       }
-  //     });
-  //   });
-
-  //   try {
-  //     const employees = await fetchEmployees;
-  //     if (employees.length === 0) {
-  //       setError(" No employees found for the selected plan.");
-  //       setPlanDetails([]);
-  //       return;
-  //     }
-  //     setPlanDetails(employees);
-  //     setError(null);
-  //   } catch (err) {
-  //     setError(err);
-  //     setPlanDetails([]);
-  //   }
-  // };
+  // ---------Handling Search--------
   const handleSearch = async (event) => {
     event.preventDefault();
+    console.log("Search Clicked");
     if (selectedPlan === "" || selectedBill === "") {
       alert("Please Select a Plan and a Bill");
       return;
@@ -83,16 +65,19 @@ const PlanReport = () => {
       if (cugBillData) {
         const cugNumbers = new Set(Object.keys(cugBillData));
         setBillCUGNumbers(cugNumbers);
-
+        // console.log("Bill cug Numbers", billCUGNumbers);
         // Fetch employees after setting the CUG numbers
         const planRef = ref(db, "Employees3/");
         onValue(planRef, (snapshot) => {
           const data = snapshot.val();
+          console.log("Data", data);
           if (data) {
             const filteredDetails = Object.values(data).filter((item) => {
               const isMatchingplan = item.Employee_Plan === selectedPlan;
               const isActive = item.status === "Active";
-              const isInSelectedBill = cugNumbers.has(item.Employee_CUG);
+              const isInSelectedBill = cugNumbers.has(
+                String(item.Employee_CUG)
+              );
               return isMatchingplan && isActive && isInSelectedBill;
             });
             if (filteredDetails.length === 0) {
@@ -100,6 +85,7 @@ const PlanReport = () => {
               setPlanDetails([]);
             } else {
               setPlanDetails(filteredDetails);
+              console.log("Plans", PlanDetails);
               setError(null);
             }
           } else {
@@ -113,6 +99,7 @@ const PlanReport = () => {
         setPlanDetails([]);
       }
     });
+    console.log(PlanDetails);
   };
 
   // Fetching CUG Bill details for a specific employee
@@ -139,6 +126,10 @@ const PlanReport = () => {
       setCugBillDetails({});
     }
   };
+  // Filter the PlanDetails based on the searchCUG
+  const filteredPlanDetails = PlanDetails.filter((employee) =>
+    employee.Employee_CUG.toString().includes(searchCUG)
+  );
 
   // Rendering component
   return (
@@ -163,9 +154,11 @@ const PlanReport = () => {
               onChange={(e) => setSelectedPlan(e.target.value)}
             >
               <option value="">--Choose--</option>
-              <option value="A">PLAN A</option>
-              <option value="B">PLAN B</option>
-              <option value="C">PLAN C</option>
+              {plans.map((plan, index) => (
+                <option key={index} value={plan}>
+                  {plan}
+                </option>
+              ))}
             </select>
           </div>
           <div className="col-3">
@@ -178,7 +171,6 @@ const PlanReport = () => {
               value={selectedBill}
               onChange={(e) => {
                 setSelectedBill(e.target.value);
-
                 setError("");
               }}
             >
@@ -189,6 +181,22 @@ const PlanReport = () => {
                 </option>
               ))}
             </select>
+          </div>
+          <div className="col-4">
+            {PlanDetails.length > 1 && (
+              <>
+                <label htmlFor="searchCUG" className="form-label">
+                  Search CUG
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Search by CUG No."
+                  value={searchCUG}
+                  onChange={(e) => setSearchCUG(e.target.value)}
+                />
+              </>
+            )}
           </div>
           <div className="col-12">
             <button type="submit" className="btn btn-primary">
@@ -209,7 +217,7 @@ const PlanReport = () => {
               </tr>
             </thead>
             <tbody>
-              {PlanDetails.map((employee) => (
+              {filteredPlanDetails.map((employee) => (
                 <tr key={employee.Employee_Id}>
                   <td>{employee.Employee_Id}</td>
                   <td>{employee.Employee_Name}</td>

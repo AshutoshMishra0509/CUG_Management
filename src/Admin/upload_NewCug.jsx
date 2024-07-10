@@ -101,7 +101,7 @@ const UploadCUG = () => {
         return;
       }
 
-      const newCugRef = ref(db, `Employees4/${empNo}`);
+      const newCugRef = ref(db, `Employees3/${empNo}`);
       set(newCugRef, {
         Employee_Name: empName,
         Employee_CUG: cugNo,

@@ -71,9 +71,10 @@ const CugStatusReport = () => {
     setSearchInput(e.target.value);
   };
 
-  const filteredCugData = cugData.filter((item) =>
-    item.Employee_CUG.includes(searchInput)
-  );
+  const filteredCugData = cugData.filter((item) => {
+    const cugNumber = item.Employee_CUG.toString(); // Convert the number to a string
+    return cugNumber.includes(searchInput);
+  });
 
   return (
     <>
